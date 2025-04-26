@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>RDView 2D Parser</title>
+</head>
+
+
+<body>
+	<h1 id="header">2D RDView Parser</h1>
+
+	<label><canvas id="canvas" width="640" height="480"></canvas></label>
+
+	<h2 id="errorBar" hidden="true" style="color: red;">Syntax Error</h2>
+
+	<br><button id="drawButton" onclick="draw()">Draw</button>
+
+	<label>Samples:
+		<select id="selectSample" onchange="setSample();" onfocus="this.selectedIndex = -1;">
+			<option selected disabled hidden>(None)</option>
+
+			<option value="smile">Smiley Face</option>
+			<option value="line1">Lines (Slow)</option>
+			<option value="line2">Lines</option>
+			<option value="fill1">Windows</option>
+			<option value="fill2">Bullseye</option>
+			<option value="circle">Circles</option>
+
+			<option value="s01">s01 (Point Test)</option>
+			<option value="s02">s02 (Point Color Test)</option>
+			<option value="s03">s03 (Line Test)</option>
+			<option value="s04">s04 (Line Color Test)</option>
+			<option value="s05">s05 (Circle Test)</option>
+			<option value="s06">s06 (Fill Test)</option>
+			<option value="s07">s07 (Surpised Face)</option>
+			<option value="s08">s08 (Fill Edge Test)</option>
+		</select>
+	</label>
+
+	<input id="speedSlider" hidden="true" type="range" value="100" min="0" max="100">
+	<label id="speedLabel" hidden="true">1x</label>
+
+	<p><textarea id="textarea" rows="5">Line 0 0 0  640 480 0</textarea></p>
+
+	<p><a href="">Switch to 3D</a></p>
+	<p><a href="https://graphics.cs.niu.edu/csci631/rd_doc.html">RD Documentation</a></p>
+</body>
+</html>
+
+
+<style>
+	textarea { width: 634px; height: auto; overflow: hidden;}
+	button   { width: 50px; height: 25px; }
+</style>
+
+
+<script>
+const SAMPLES = {
+"s01":
+`# Testing default size, background color and foreground color for single point
+
+Display "Point Test"  "Screen" "rgbsingle"
+
+FrameBegin 1
+WorldBegin
+
+Point 320 240 0
+
+WorldEnd
+FrameEnd`,
+
+
+"s02":
+`# Testing color
+
+Display "Point Test"  "Screen" "rgbsingle"
+
+FrameBegin 1
+
+Background 0.3 0.3 0.3
+
+WorldBegin
+
+Color 0.9 0.5 0.2
+
+Point 320 240 0
+
+WorldEnd
+FrameEnd`,
+
+
+"s03":
+`# Testing line drawing
+
+Display "Line Test"  "Screen" "rgbsingle"
+Format 640 480
+
+FrameBegin 1
+WorldBegin
+
+Line 324 240 0  440 240 0
+Line 324 242 0  440 300 0
+Line 324 244 0  440 360 0
+Line 322 244 0  380 360 0
+Line 320 244 0  320 360 0
+Line 318 244 0  260 360 0
+Line 316 244 0  200 360 0
+Line 316 242 0  200 300 0
+Line 316 240 0  200 240 0
+Line 316 238 0  200 180 0
+Line 316 236 0  200 120 0
+Line 318 236 0  260 120 0
+Line 320 236 0  320 120 0
+Line 322 236 0  380 120 0
+Line 324 236 0  440 120 0
+Line 324 238 0  440 180 0
+
+WorldEnd
+FrameEnd`,
+
+
+"s04":
+`# Testing the display size (Format command) and color line drawing
+
+Display "Line Test"  "Screen" "rgbsingle"
+
+Format 80 60
+
+
+FrameBegin 1
+
+Background 0.3 0.3 0.3
+
+WorldBegin
+
+
+Color 1.0 0.0 0.0
+Line 44 30 0 54 30 0
+
+Color 1.0 0.2308 0
+Line 44 32 0 54 37 0
+
+Color 1.0 0.6 0
+Line 44 34 0 54 44 0
+
+Color 0.7778 1.0 0
+Line 42 34 0 47 44 0
+
+Color 0.3333 1.0 0
+Line 40 34 0 40 44 0
+
+Color 0.0667 1.0 0
+Line 38 34 0 33 44 0
+
+Color 0 1.0 0.1429
+Line 36 34 0 26 44 0
+
+Color 0 1.0 0.4545
+Line 36 32 0 26 37 0
+
+Color 0 1.0 1.0
+Line 36 30 0 26 30 0
+
+Color 0 0.4545 1.0
+Line 36 28 0 26 23 0
+
+Color 0 0.1429 1.0
+Line 36 26 0 26 16 0
+
+Color 0.0667 0 1.0
+Line 38 26 0 33 16 0
+
+Color 0.3333 0 1.0
+Line 40 26 0 40 16 0
+
+Color 0.7778 0 1.0
+Line 42 26 0 47 16 0
+
+Color 1.0 0 0.6
+Line 44 26 0 54 16 0
+
+Color 1.0 0 0.2308
+Line 44 28 0 54 23 0
+
+WorldEnd
+FrameEnd`,
+
+
+"s05":
+`# Testing circles
+
+Display "Circle Test"  "Screen" "rgbsingle"
+Format 500 300
+
+FrameBegin 1
+
+Background 0.3 0.3 0.3
+
+WorldBegin
+
+# x y z of center, then radius
+
+Circle 250 150 0 20
+
+Circle 250 150 0 40
+
+Circle 250 150 0 60
+
+Circle 250 150 0 80
+
+Circle 250 150 0 100
+
+WorldEnd
+FrameEnd`,
+
+
+"s06":
+`# Testing filling
+
+Display "Fill Test"  "Screen" "rgbsingle"
+Format 400 400
+
+FrameBegin 1
+
+WorldBegin
+
+# Draw some squares
+
+Line  50 350 0  350 350 0
+
+Line 350 350 0  350  50 0
+
+Line 350  50 0   50  50 0
+
+Line  50  50 0   50 350 0
+
+
+Line 150  50 0  150 150 0
+
+Line 150 150 0  250 150 0
+
+Line 250 150 0  250  50 0
+
+
+Line 150 350 0  150 251 0
+
+Line 151 250 0  249 250 0
+
+Line 250 251 0  250 350 0
+
+
+Color 1.0  0.5 0.5
+
+Fill 200 300 0
+
+Color 0.5 0.5 1.0
+
+Fill 200 100 0
+
+Color 0.5 1.0 0.5
+
+Fill 200 200 0
+
+WorldEnd
+FrameEnd`,
+
+
+"s07":
+`# Testing filling and double buffering
+
+Display "Oh No!"  "Screen" "rgbsingle"
+Format 500 500
+
+
+Background 0.3 0.3 0.7
+
+
+FrameBegin 1
+
+WorldBegin
+
+#Face
+
+Color 1.0 1.0 1.0
+
+Circle  250 250 0 200
+
+Fill 250 250 0
+
+
+# Left eye
+
+Color 0.0 0.0 1.0
+
+Circle 170 190 0 30
+
+Fill 170 190 0
+
+# Right eye
+
+Circle 330 190 0 30
+
+Fill 330 190 0
+
+# Mouth
+
+Color 1.0 0.0 0.0
+
+Circle 250 320 0 60
+
+Circle 250 320 0 40
+
+Fill 250 261 0
+
+WorldEnd
+FrameEnd`,
+
+
+"s08":
+`# Testing filling at edges
+
+Display "EdgeTest"  "PNM" "rgb"
+Format 400 400
+
+
+Background 0.9 0.9 0.9
+
+
+FrameBegin 1
+
+WorldBegin
+
+#Lines
+
+Color 0.0 0.0 0.0
+
+Line 195 0 0 195 399 0
+Line 205 0 0 205 399 0
+
+Line 295 0 0 95 399 0
+Line 305 0 0 105 399 0
+
+Line 395 0 0 0 395 0
+Line 399 5 0 5 399 0
+
+Line 399 95 0 0 295 0
+Line 399 105 0 0 305 0
+
+Line 399 195 0 0 195 0
+Line 399 205 0 0 205 0
+
+Line 399 295 0 0 95 0
+Line 399 305 0 0 105 0
+
+Line 399 395 0 5 0 0
+Line 395 399 0 0 5 0
+
+Line 295 399 0 95 0 0
+Line 305 399 0 105 0 0
+
+Color 1.0 0.5 0.5
+Fill 250 5 0
+
+Color 1.0 0.7 0.5
+Fill 395 50 0
+
+Color 1.0 1.0 0.5
+Fill 395 250 0
+
+Color 0.8 1.0 0.5
+Fill 350 395 0
+
+Color 0.5 1.0 0.5
+Fill 150 395 0
+
+Color 0.5 1.0 0.7
+Fill 5 350 0
+
+Color 0.5 1.0 1.0
+Fill 5 150 0
+
+Color 0.5 0.7 1.0
+Fill 50 5 0
+
+Color 0.5 0.5 1.0
+Fill 350 5 0
+
+Color 0.7 0.5 1.0
+Fill 395 150 0
+
+Color 1.0 0.5 1.0
+Fill 395 350 0
+
+Color 1.0 0.5 0.7
+Fill 250 395 0
+
+Color 0.5 0.5 0.5
+Fill 50 395 0
+
+Color 0.6 0.6 0.6
+Fill 5 250 0
+
+Color 0.8 0.8 0.8
+Fill 5 50 0
+
+WorldEnd
+FrameEnd`,
+
+
+
+"line1":
+`# Draws a set of lines to the screen using single buffering.
+# Makes sure that all basic orientation categories are represented.
+
+Display "Lines 1"  "Screen" "rgbsingle"
+
+Format 700 700
+
+Background 0 0 0
+
+FrameBegin 1
+WorldBegin
+
+Color 1 1 1
+
+Line 450 350 0  650 350 0  # (0   Degrees) Horizontal (Right)
+Line 425 375 0  575 425 0  # (30  Degrees) Right-Up
+Line 400 400 0  500 500 0  # (45  Degrees) Diagonal (Up-Right)
+Line 375 425 0  425 575 0  # (60  Degrees) Up-Right
+
+Line 350 450 0  350 650 0  # (90  Degrees) Vertical (Up)
+Line 325 425 0  275 575 0  # (120 Degrees) Up-Left
+Line 300 400 0  200 500 0  # (135 Degrees) Diagonal (Up-Left)
+Line 275 375 0  125 425 0  # (150 Degrees) Left-Up
+
+Line 250 350 0  50  350 0  # (180 Degrees) Horizontal (Left)
+Line 275 325 0  125 275 0  # (210 Degrees) Left-Down
+Line 300 300 0  200 200 0  # (225 Degrees) Diagonal (Down-Left)
+Line 325 275 0  275 125 0  # (240 Degrees) Down-Left
+
+Line 350 250 0  350 50  0  # (270 Degrees) Vertical (Down)
+Line 375 275 0  425 125 0  # (300 Degrees) Down-Right
+Line 400 300 0  500 200 0  # (315 Degrees) Diagonal (Down-Right)
+Line 425 325 0  575 275 0  # (330 Degrees) Right-Down
+
+WorldEnd
+FrameEnd`,
+
+
+"line2":
+`# Draws the same set of lines to the screen using double buffering.
+
+Display "Lines 2"  "Screen" "rgbsingle"
+
+Format 700 700
+
+Background 0 0 0
+
+FrameBegin 1
+WorldBegin
+
+Color 1 1 1
+
+Line 450 350 0  650 350 0  # (0   Degrees) Horizontal (Right)
+Line 425 375 0  575 425 0  # (30  Degrees) Right-Up
+Line 400 400 0  500 500 0  # (45  Degrees) Diagonal (Up-Right)
+Line 375 425 0  425 575 0  # (60  Degrees) Up-Right
+
+Line 350 450 0  350 650 0  # (90  Degrees) Vertical (Up)
+Line 325 425 0  275 575 0  # (120 Degrees) Up-Left
+Line 300 400 0  200 500 0  # (135 Degrees) Diagonal (Up-Left)
+Line 275 375 0  125 425 0  # (150 Degrees) Left-Up
+
+Line 250 350 0  50  350 0  # (180 Degrees) Horizontal (Left)
+Line 275 325 0  125 275 0  # (210 Degrees) Left-Down
+Line 300 300 0  200 200 0  # (225 Degrees) Diagonal (Down-Left)
+Line 325 275 0  275 125 0  # (240 Degrees) Down-Left
+
+Line 350 250 0  350 50  0  # (270 Degrees) Vertical (Down)
+Line 375 275 0  425 125 0  # (300 Degrees) Down-Right
+Line 400 300 0  500 200 0  # (315 Degrees) Diagonal (Down-Right)
+Line 425 325 0  575 275 0  # (330 Degrees) Right-Down
+
+WorldEnd
+FrameEnd`,
+
+
+"fill1":
+`Display "Flood Fill 1"  "Screen" "rgbsingle"
+
+Format 500 500
+
+Background 0 0 0
+
+FrameBegin 1
+WorldBegin
+
+
+# Draw a square.
+Color 1 1 1
+Line 50  50  0  50  450 0
+Line 50  50  0  450  50 0
+Line 50 450  0  450 450 0
+Line 450 50  0  450 450 0
+
+# Draw a horizontal line and a vertical line through the square.
+Line 50  250  0  450 250 0
+Line 250  50  0  250 450 0
+
+# Replace the pixel where the lines cross with the background color.
+# (The interiors of the quadrants are now 8-connected, but not 4-connected).
+Color 0 0 0
+Point 250 250 0
+
+# Fill each quadrant with a different color.
+Color 1 0 0     # Red
+Fill 100 100 0
+Color 0 0 1     # Blue
+Fill 400 100 0
+Color 0 1 0     # Green
+Fill 100 400 0
+Color 1 1 0     # Yellow
+Fill 400 400 0
+
+
+WorldEnd
+FrameEnd`,
+
+
+"fill2":
+`# Experimenting with some pleasing colors that would be used in a child's paint set.
+# Without using the automatic default colors (i.e. red - R = 1.0, G = 0.0, B = 0.0).
+
+Display "Flood Fill 2"  "Screen" "rgbsingle"
+
+Format 501 501
+
+Background 1 1 1
+
+FrameBegin 1
+WorldBegin
+
+
+# Draws a set of concentric circles
+
+Color 0 0 0
+Circle 250 250 0  25
+Circle 250 250 0  50
+Circle 250 250 0  75
+Circle 250 250 0  100
+Circle 250 250 0  125
+Circle 250 250 0  150
+Circle 250 250 0  175
+Circle 250 250 0  200
+Circle 250 250 0  225
+Circle 250 250 0  250
+
+
+# and fills them to make a bullseye pattern
+# with colors of brown, dark gray, light gray,
+# pink, red, orange, yellow, green, blue and purple
+# in order from the center circle out.
+
+Color .29 .21 .16  # Brown
+Fill 260 250 0
+
+Color .25 .25 .25 # Dark Gray
+Fill 285 250 0
+
+Color .75 .75 .75 # Light Gray
+Fill 310 250 0
+
+Color .93 .23 .5 # Pink
+Fill 335 250 0
+
+Color .9 .035 .078 # Red
+Fill 360 250 0
+
+Color .9 .435 .078 # Orange
+Fill 385 250 0
+
+Color .9 .9 .1 # Yellow
+Fill 410 250 0
+
+Color .05 .65 .31 # Green
+Fill 435 250 0
+
+Color .05 .17 .53 # Blue
+Fill 460 250 0
+
+Color .41 .21 .61 # Purple
+Fill 495 250 0
+
+
+WorldEnd
+FrameEnd`,
+
+
+"circle":
+`Display "Circles"  "Screen" "rgbsingle"
+
+Format 100 100
+
+Background 0 0 0
+
+FrameBegin 1
+WorldBegin
+
+
+# In the left half of a new image,
+# draws a set of concentric circles in various colors with radii of odd lengths,
+# in the range of 1 - 11.
+
+Color 1 1 1
+Circle 25 50 0 1
+
+Color 1 0 0
+Circle 25 50 0 3
+
+Color 1 1 0
+Circle 25 50 0 5
+
+Color 1 0 1
+Circle 25 50 0 7
+
+Color 0 1 1
+Circle 25 50 0 9
+
+Color 0 0 1
+Circle 25 50 0 11
+
+
+# In the right half of the same image,
+# draw a set of concentric circles with radii of even lengths from 2 - 12.
+
+Color 0 0 1
+Circle 75 50 0 2
+
+Color 0 1 1
+Circle 75 50 0 4
+
+Color 1 0 1
+Circle 75 50 0 6
+
+Color 1 1 0
+Circle 75 50 0 8
+
+Color 1 0 0
+Circle 75 50 0 10
+
+Color 1 1 1
+Circle 75 50 0 12
+
+WorldEnd
+FrameEnd`,
+
+
+
+"smile":
+`# Draws a smiley face
+
+Display "Smiley Face"  "Screen" "rgbsingle"
+
+Format 500 500
+
+Background 0 .5 1
+
+FrameBegin 1
+WorldBegin
+
+
+# Head
+Color 0 0 0
+Circle 250 250 0  200
+Circle 250 250 0  210
+Fill 250 455 0
+
+# Eyes
+Color 1 1 0  # Yellow Outline
+Circle 190 200 0  35
+Circle 310 200 0  35
+Color 1 1 1  # White Background
+Fill 190 225 0
+Fill 310 225 0
+Color 0 0 0  # Black Fill
+Circle 190 197 0  30
+Circle 310 197 0  30
+Fill 190 200 0
+Fill 310 200 0
+
+# Mouth
+Color 1 1 0 # Yellow Outline
+Line 110 250 0 390 250 0
+Circle 250 250 0  140
+Circle 250 250 0  150
+Color 0 0 0 # Black Fill
+Circle 105 250 0  4
+Circle 395 250 0  4
+Fill 105 250 0
+Fill 395 250 0
+Fill 250 395 0
+
+# Yellow Face
+Color 0 .5 1
+Line 250 100 0 250 300 0 # Line to cut and fill easily
+Color 1 1 0
+Fill 250 401 0
+
+
+WorldEnd
+FrameEnd`
+};
+
+
+var textarea = document.getElementById("textarea");
+function setSample(x) {
+	const RD_SOURCE_CODE = SAMPLES[x?x:document.getElementById("selectSample").value];
+	textarea.value = RD_SOURCE_CODE;
+
+	// Resize textarea
+	var i = 0, text_width = 0, text_height = 1; // Hacky solution: Get length of longest "sentence"
+	for (const c of RD_SOURCE_CODE) {
+		if (c == '\n') { i = 0; text_height++; continue; }
+		if (++i > text_width) text_width = i;
+	}
+	textarea.rows = text_height;
+	textarea.style.width = text_width * 7.5 + "px";
+}
+
+
+// My canvas wrapper
+class MyCanvas {
+	constructor (canvas, width = 640, height = 480) {
+		this.canvas = canvas;
+		this.canvas.width = width;
+		this.canvas.height = height;
+		this.context = this.canvas.getContext("2d");
+//      this.imgData = this.context.getImageData(0, 0, width, height);
+		this.imgData = new ImageData(width, height);
+		this.buffer = this.imgData.data;
+		this.color = [255,255,255]; // Default color is white
+		this.backgroundColor = [0,0,0]; // Default background color is black
+		this.dps = 1; // Draws per second in slow mode
+		this.dpsLoop = 0;
+		this.isSlowMode = true;
+		this.slowModeQueueI = 0;
+		this.slowModeQueue = [];
+		this.slowModeBuffer = [];
+		this.clear();
+	}
+
+	setPixel(x,y, [r,g,b]) {
+		if (x < 0 || x >= this.canvas.width || y < 0 || y >= this.canvas.height) return; // Error checking (maybe optional)
+		const i = ((y*this.canvas.width) + x) * 4;
+
+		if (this.isSlowMode) {
+			this.slowModeQueue.push([r,g,b,i]);
+			this.slowModeBuffer[i] = [r,g,b];
+			return;
+		}
+
+		this.buffer[i]   = r;
+		this.buffer[i+1] = g;
+		this.buffer[i+2] = b;
+	// this.buffer[i+3] = 255;
+	}
+
+	getPixel(x,y) {
+		if (x < 0 || x >= this.canvas.width || y < 0 || y >= this.canvas.height) return [-1,-1,-1]; // Same error checking
+		const i = ((y*this.canvas.width) + x) * 4;
+
+		if (this.isSlowMode && (x = this.slowModeBuffer[i])) return x;
+	/*  if (this.isSlowMode) // Slow but doesnt use buffer
+			for (let n = this.slowModeQueue.length-1; n > 0; n--)
+				if (i == this.slowModeQueue[n][3])
+					return this.slowModeQueue[n]; */
+
+		return [ // [r,g,b]
+			this.buffer[i],
+			this.buffer[i+1],
+			this.buffer[i+2]
+		];
+	}
+
+	clear() {
+		this.slowModeQueueI = 0;
+		this.slowModeQueue = [];
+		this.slowModeBuffer = [];
+
+		const HEX = 0xff000000 | (this.backgroundColor[2] << 16) | (this.backgroundColor[1] << 8) | this.backgroundColor; // I know this could be saved as a hex in the class, but this function is rarely called and I find this method more readable anyway
+		new Uint32Array(this.buffer.buffer).fill(HEX); // view this as a 4-byte array and fill it so
+	/*  for (let i = 0, N = this.buffer.length; i < N; i+=4) {
+			this.buffer[i]   = 0;
+			this.buffer[i+1] = 0;
+			this.buffer[i+2] = 0;
+			this.buffer[i+3] = 255;
+		} */
+
+		this.context.putImageData(this.imgData, 0, 0);
+	}
+
+	background(r,g,b) {
+		this.backgroundColor = [r,g,b]; // Remember this background color just in case clear() is called again
+
+		const HEX = 0xff000000 | (b << 16) | (g << 8) | r; // argb is [a,b,g,r]
+		new Uint32Array(this.buffer.buffer).fill(HEX);
+	/*  for (let i = 0, N = this.buffer.length; i < N; i+=4) {
+			this.buffer[i]   = r;
+			this.buffer[i+1] = g;
+			this.buffer[i+2] = b;
+			this.buffer[i+3] = 255;
+		} */
+
+		this.context.putImageData(this.imgData, 0, 0);
+	}
+
+	resize(x = 640, y = 480) {
+		this.canvas.width = x;
+		this.canvas.height = y;
+		this.context = this.canvas.getContext("2d");
+//      this.imgData = this.context.getImageData(0, 0, x, y);
+		this.imgData = new ImageData(x,y);
+		this.buffer = this.imgData.data;
+		this.clear(); // hacky solution for now (doesnt matter for actual rdview syntax anyway)
+	}
+
+	reset() {
+		this.color = [255,255,255];
+		this.backgroundColor = [0,0,0];
+		this.resize();
+		// this.clear(); // Already exists in resize
+
+		document.getElementById("header").innerText = "2D RDView Parser"; // Honestly, kinda optional
+	}
+
+	slowModeLoop() {
+		this.dpsLoop += this.dps
+		while (this.dpsLoop > 0) {
+			this.dpsLoop--;
+			if (this.slowModeQueueI >= this.slowModeQueue.length ) {
+				this.slowModeQueueI = 0; // Clear array
+				this.slowModeQueue = [];
+				this.slowModeBuffer = [];
+				clearInterval(this.intervalID);
+				break;
+			}
+
+			var [r, g, b, i] = this.slowModeQueue[this.slowModeQueueI++];
+			this.buffer[i]   = r;
+			this.buffer[i+1] = g;
+			this.buffer[i+2] = b;
+			// this.buffer[i+3] = 255;
+		}
+		this.context.putImageData(this.imgData, 0, 0);
+	}
+
+	update() {
+		if (this.isSlowMode) {
+			clearInterval(this.intervalID);
+			var t = this; // Why this works idk
+			this.intervalID = setInterval(function(){t.slowModeLoop();}); //, 1000 / this.fps);
+			return;
+		}
+
+		this.context.putImageData(this.imgData, 0, 0);
+	}
+
+	setSlowMode(isSlow) {
+		// clearInterval(this.intervalID);
+		if (isSlow) {
+			this.isSlowMode = true;
+			// var t = this; // Why this works idk
+			// this.intervalID = setInterval(function(){t.slowModeLoop();}); //, 1000 / this.fps);
+		} else {
+			this.isSlowMode = false;
+		}
+	}
+
+
+	   ///////////////
+	  // Rendering //
+	 ///////////////
+	// Alot of my work goes into here (could be this a separate class if you want)
+
+	   //////////
+	  // Line //
+	 //////////
+	// All should be unsigned int
+	line(x1, y1, x2, y2) {
+		var dx = x2 - x1;
+		var dy = y2 - y1;
+
+		if (dy > 0) { // Top Quadrant
+			if (dx > 0) { // Top-Right Quadrant
+				if (dx > dy) { // 0 to 45 degrees (right-up)
+					const B = 2*dy;
+					const A = B - 2*dx;
+
+					var p = B - dx; // Initial decision value (2dy - dx)
+					while (x1 <= x2) {
+						this.setPixel(x1++, y1, this.color);
+						if (p > 0) { // Arbitrary split decision > or <
+							y1++;
+							p += A; // p += 2dy - 2dx
+						} else
+							p += B; // p += 2dy
+					}
+				} else { // 45 to 90 degrees (up-right)
+					// Swap x/y
+					const B = 2*dx;
+					const A = B - 2*dy;
+
+					var p = B - dy;
+					while (y1 <= y2) {
+						this.setPixel(x1, y1++, this.color);
+						if (p > 0) {
+							p += A;
+							x1++;
+						} else
+							p += B;
+					}
+				}
+			} else { // Top-Left Quadrant
+				dx = -dx;
+				if (dy > dx) { // 90 to 135 degrees (up-left)
+					// Swap x/y
+					const B = 2*dx;
+					const A = B - 2*dy;
+
+					var p = B - dy;
+					while (y1 <= y2) {
+						this.setPixel(x1, y1++, this.color);
+						if (p > 0) {
+							x1--; // Decrement
+							p += A;
+						} else
+							p += B;
+					}
+				} else { // 135 to 180 degrees (left-up)
+					const B = 2*dy;
+					const A = B - 2*dx;
+
+					var p = B - dx;
+					while (x1 >= x2) {
+						this.setPixel(x1--, y1, this.color); // Decrement
+						if (p > 0) {
+							y1++;
+							p += A;
+						} else
+							p += B;
+					}
+				}
+			}
+		} else { // Bottom Quadrant
+			dy = -dy;
+			if (dx > 0) { // Bottom-Right Quadrant
+				if (dx > dy) { // 315 to 360 degrees (right-down)
+					const B = 2*dy;
+					const A = B - 2*dx;
+
+					var p = B - dx;
+					while (x1 <= x2) {
+						this.setPixel(x1++, y1, this.color);
+						if (p > 0) {
+							y1--; // Decrement
+							p += A;
+						} else
+							p += B;
+					}
+				} else { // 270 to 315 degrees (down-right)
+					// Swap x and y
+					const B = 2*dx;
+					const A = B - 2*dy;
+
+					var p = B - dy;
+					while (y1 >= y2) { // Decrement
+						this.setPixel(x1, y1--, this.color);
+						if (p > 0) {
+							x1++;
+							p += A;
+						} else
+							p += B;
+					}
+				}
+			} else { // Bottom-Left Quadrant
+				dx = -dx;
+				if (dx > dy) { // 180 to 225 degrees (left-down)
+					const B = 2*dy;
+					const A = B - 2*dx;
+
+					var p = B - dx;
+					while (x1 >= x2) { // Decrement
+						this.setPixel(x1--, y1, this.color);
+						if (p > 0) {
+							y1--; // Decrement
+							p += A;
+						} else
+							p += B;
+					}
+				} else { // 225 to 270 degrees (down-left)
+					// Swap x/y
+					const B = 2*dx;
+					const A = B - 2*dy;
+
+					var p = B - dy;
+					while (y1 >= y2) { // Decrement
+						this.setPixel(x1, y1--, this.color);
+						if (p > 0) {
+							x1--; // Decrement
+							p += A;
+						} else
+							p += B;
+					}
+				}
+			}
+		}
+	}
+
+
+	  ////////////
+	 // Circle //
+	////////////
+	circle(xC, yC, radius) {
+		var x = 0;
+		var y = radius;
+		var p = 1 - radius; // Decision variable
+
+		while (y >= x) { // 0 to 45
+			// For all 8 parts of the circle
+			const xPx = xC + x; // xCenter Plus xOffset
+			const xMx = xC - x; // xCenter Minus xOffset
+			const yPy = yC + y; // etc...
+			const yMy = yC - y;
+			this.setPixel(xPx, yPy, this.color);
+			this.setPixel(xPx, yMy, this.color);
+			this.setPixel(xMx, yPy, this.color);
+			this.setPixel(xMx, yMy, this.color);
+
+			const xPy = xC + y;
+			const xMy = xC - y;
+			const yPx = yC + x;
+			const yMx = yC - x;
+			this.setPixel(xPy, yPx, this.color);
+			this.setPixel(xPy, yMx, this.color);
+			this.setPixel(xMy, yPx, this.color);
+			this.setPixel(xMy, yMx, this.color);
+
+			x++;
+			if (p >= 0) { // Techinically 1/4
+				y--;
+				p += 2*x + 1 - 2*y;
+			} else {
+				p += 2*x + 1;
+			}
+		}
+	}
+
+
+	   //////////
+	  // Fill //
+	 //////////
+	// Helper functions for fill()
+	// This took the longest for me
+	#isEqualColor(rgb1, rgb2) {
+		return rgb1[0] == rgb2[0] && rgb1[1] == rgb2[1] && rgb1[2] == rgb2[2];
+	}
+
+	// Stretches the beginning first, then searches for ends and adds them to the stack to lazily simulate recursion
+	// 2 Assumptions: xS and xE are the same, and xS and xE are in-bounds
+	#searchForSpansAndStack(xS, xE, y, seed_color, stack) {
+		// Check vertical bounds
+		if (y < 0 || y >= this.canvas.height) return;
+
+		// Check first range
+		const END = xE;
+		var xE = xS;
+		if (this.#isEqualColor(seed_color,this.getPixel(xS, y))) { // Check if this start cell is valid
+			while (++xE < this.canvas.width && this.#isEqualColor(seed_color,this.getPixel(xE, y))); // From start+1 to right, increment and check
+			while (--xS >= 0 && this.#isEqualColor(seed_color,this.getPixel(xS, y))); // From start-1 to left, decrement and check
+
+			// Add first range to stack
+			stack.push(xS+1); // shift by 1 to be in the starting point
+			stack.push(xE);
+			stack.push(y);
+		}
+
+		// Check right for any other ranges in the current span seperated by "walls"
+		while (++xE < END) { // Search range limited to the current span
+			var xS = xE; // Remember start position
+			if (this.#isEqualColor(seed_color,this.getPixel(xE, y))) { // Check if this start cell+1 is valid
+				while (++xE < this.canvas.width && this.#isEqualColor(seed_color,this.getPixel(xE, y))); // From start+1 to right, increment and check
+
+				// Add new range to stack
+				stack.push(xS);
+				stack.push(xE);
+				stack.push(y);
+			}
+		}
+	}
+
+	// Optimize early return if color is the same?
+	// (2D) Flood fills the area from the seed point with the current drawing color
+	fill(x, y) {
+		if (x >= this.canvas.width || y >= this.canvas.height) return; // remove this to punish the user for using fill outside the screen
+
+		const seed_color = this.getPixel(x, y);
+		if (this.#isEqualColor(this.color, seed_color)) return; // Same color
+
+		// Check current span
+		var xS = x;
+		var xE = x;
+		if (y >= 0 && y < this.canvas.height && this.#isEqualColor(seed_color,this.getPixel(x, y))) { // Check start
+			while (++xE < this.canvas.width && this.#isEqualColor(seed_color,this.getPixel(xE, y))); // Check start+1 to right
+			while (--xS >= 0 && this.#isEqualColor(seed_color,this.getPixel(xS, y))); // Check start-1 to left
+		}
+
+		var stack = []; // Push Order: xS, xE, y
+		stack.push(xS+1); // shift by +1 to be in the starting point
+		stack.push(xE);
+		stack.push(y);
+
+		// Main Loop
+		while(stack.length > 0) { // while not empty
+			// Get next "line" in line (haha)
+			var y  = stack.pop();
+			var xE = stack.pop();
+			var xS = stack.pop();
+
+			// Fill the current line then search up and down for more
+			for (x = xS; x < xE; x++) this.setPixel(x, y, this.color); // Fill Current Line
+			this.#searchForSpansAndStack(xS, xE, y+1, seed_color, stack); // Search Up 1
+			this.#searchForSpansAndStack(xS, xE, y-1, seed_color, stack); // Search Down 1
+		}
+	}
+}
+
+
+
+  ////////////////////
+ // RD File Parser //
+////////////////////
+class RDParser {
+	constructor(str) {
+		this.string = str;
+		this.i = 0;
+		this.lastI = 0; // only for accurate error messages
+	}
+
+	readBoolean(str) {
+		switch (str.toLowerCase()) {
+			case "true":  return true;
+			case "false": return false;
+			case "on":    return true;
+			case "off":   return false;
+			case "yes":   return true;
+			case "no":    return false;
+			case "1":     return true;
+			case "0":     return false;
+			default:      return false; // Invalid flag, assume false
+		}
+	}
+
+	// Skips white space and comments
+	// true when it stops on first character of token
+	// false if stops at end of the whole string
+	skipWhitespace() {
+		var i = this.i; // class i by default, (maybe else parameter i in the future)
+		const LENGTH = this.string.length;
+
+		while (true) {
+			if (i >= LENGTH) { // End of string
+				this.lastI = this.i;
+				this.i = i;
+				return false
+			};
+
+			switch (this.string[i]) {
+				case ' ':  break; // Space
+				case '\t': break; // Tab
+				case '\r': break; // For DOS files (ex: Windows using \r\n)
+				case '\n': break; // New line
+				case '#': // Comment
+					while (++i < LENGTH && this.string[i] != '\n'); // Ignore comment until new line
+					continue; // i-- break?
+				default:
+					this.lastI = this.i;
+					this.i = i;
+					return true;
+			}
+			i++
+		}
+	}
+
+	// Returns the token that is skipped and stops on first whitespace
+	skipToken() {
+		var i = this.i;
+		const START = i; // Save for later
+		const LENGTH = this.string.length;
+
+		while (true) {
+			if (i >= LENGTH) break; // End of string
+			switch (this.string[i]) {
+				case ' ':  break; // Space
+				case '\t': break; // Tab
+				case '\r': break; // For DOS files (ex: Windows using \r\n)
+				case '\n': break; // New line
+				case '#':  break; // Comment
+				default: i++; continue; // Character, continue
+			}
+			break;
+		}
+		this.lastI = this.i;
+		this.i = i;
+		return this.string.substring(START, i);
+	}
+
+	nextToken() { if (this.skipWhitespace()) return this.skipToken(); }
+
+	nextFloats(n=1) {
+		var t,f;
+		var args = [];
+		for (let i = 0; i < n; i++)
+			if ((t = this.nextToken()) && ((f = parseFloat(t)) || f == 0)) // Cuz js treats 0 as false (classic js moment)
+				args.push(f);
+			else
+				return; // Invalid
+
+		return args
+	}
+
+	nextString() {
+		if (!this.skipWhitespace()) return;
+
+		var i = this.i;
+		const S = this.string;
+		const CLOSING_QUOTE = S[i]; // Only close with this exact quote
+
+		if (CLOSING_QUOTE != '"' && CLOSING_QUOTE != "'") return; // Check for beginning quotation as " or '
+		while (++i < this.string.length && S[i] != CLOSING_QUOTE); // From start+1 to right, increment and check for end quotation
+
+		const s = S.substring(this.i+1, i++); // ++ to avoid quotation
+		this.lastI = this.i;
+		this.i = i;
+		return s;
+	}
+
+	// Returns error message at line
+	error() {
+		const S = this.string;
+		const N = S.length; // end
+
+		// Get line of error
+		var from = this.lastI, to = this.lastI; // No need to see if this start is valid
+		while (--from >= 0 && S[from] != '\n'); // From start-1 to left,  decrement and check (exclusive)
+		while (++to   <  N && S[to]   != '\n'); // From start+1 to right, increment and check (inclusive)
+
+		var i = from+1, line = 1;
+		while (i -- > 0) if (S[i] == '\n') line++; // Count lines (with funny syntax)
+
+		return "Syntax Error on line " + line + ": '" + S.substring(from+1, to) + "'";
+	}
+
+	// Parse and draw info onto this canvas
+	parse(canvas) {
+		var str, a;
+		while (str = this.nextToken()) {
+			str = str.toLowerCase();
+			switch (str) {
+				case "ambientlight": break; // AmbientLight 1 1 1
+
+				case "background":
+					if (!(a = this.nextFloats(3))) return this.error(); // Syntax error
+					a[0] = Math.floor(a[0] * 255);
+					a[1] = Math.floor(a[1] * 255);
+					a[2] = Math.floor(a[2] * 255);
+					canvas.background(a[0],a[1],a[2]);
+					break;
+
+				case "cameraat": break; // CameraAt 1 2 3
+				case "cameraeye": break; // CameraEye 4 5 6
+				case "camerafov": break; // CameraFOV 70
+				case "cameraup": break; // CameraUp 0 1 0
+
+				case "circle":
+					if (!(a = this.nextFloats(4))) return this.error();
+					canvas.circle(a[0],a[1], a[3]);
+					break;
+
+				// Clipping?
+
+				case "color":
+					if (!(a = this.nextFloats(3))) return this.error();
+					a[0] = Math.floor(a[0] * 255);
+					a[1] = Math.floor(a[1] * 255);
+					a[2] = Math.floor(a[2] * 255);
+					canvas.color = a;
+					break;
+
+				case "cone": break; // Cone 1 2 3
+				// Cone Light?
+				case "cube": break; // Cube
+				// Curve?
+				// Custom?
+				case "cylinder": break; // Cylinder 1 2 3 4
+				case "disk": break; // Disk 1 2 3
+
+				case "display":
+					// Name
+					if (!(a = this.nextString())) return this.error();
+					document.getElementById("header").innerText = a;
+
+					// Screen or PPM (ignored)
+					if (!(a = this.nextString())) return this.error();
+
+					// buffer mode
+					if (!(a = this.nextString())) return this.error();
+					canvas.setSlowMode(a == "rgbsingle"); // Lazy method (true if exactly this, else false)
+
+				/*  if (a == "rgbsingle")
+						canvas.setSlowMode(true);
+					else if (a == "rgbdouble" || "rgb")
+						canvas.setSlowMode(false);
+					else
+						console.log("idk"); */
+					break;
+
+				// Emit?
+				// Engine?
+				case "farlight": break; // FarLight 1 2 3 4 5 6 7
+
+				case "fill":
+					if (!(a = this.nextFloats(3))) return this.error();
+					canvas.fill(a[0],a[1]);
+					break;
+
+				case "format":
+				if (!(a = this.nextFloats(2))) return this.error();
+				canvas.resize(a[0],a[1]);
+				break;
+
+				case "framebegin": break; // FrameBegin 1
+				case "frameend": break; // FrameEnd
+				// Hyperboloid?
+				case "ka": break; // Ka 1
+				case "kd": break; // Kd 1
+				case "ke": break; // Ke 1
+				case "ks": break; // Ks 1
+
+
+				case "line":
+				if (!(a = this.nextFloats(6))) return this.error();
+				canvas.line(a[0],a[1], a[3],a[4]);
+				break;
+
+				case "lineset": break; // LineSet ...
+				// Map?
+				// MapBorder?
+				// MapBound?
+				// MapLoad?
+				// MapSample?
+				case "objectbegin": break; // ObjectBegin
+				case "objectend": break; // ObjectEnd
+				case "objectinstance": break; // ObjectInstance ...
+				case "opacity": break; // Opacity 1
+				// OptionArray?
+				// OptionBool?
+				// OptionList?
+				// OptionReal?
+				// OptionString?
+				// Paraboloid?
+				// Patch
+
+				case "point":
+					if (!(a = this.nextFloats(3))) return this.error();
+					canvas.setPixel(a[0],a[1],canvas.color);
+					break;
+
+				case "pointlight": break; // PointLight 1 2 3 4 5 6 7
+				case "pointset": break; // PointSet ...
+				case "polyset": break; // PolySet ...
+				case "rotate": break; // Rotate 1 2
+				case "scale": break; // Scale 1 2 3
+				case "specular": break; // Specular 1 2 3
+				case "sphere": break; // Sphere 1 2 3 4
+				// SqSphere?
+				// SqTorus?
+				// Subdivision?
+				// Surface?
+				// Torus?
+				case "translate": break; // Translate 1 2 3
+				// Tube?
+
+				case "worldbegin": break; // WorldBegin
+				case "worldend": break; // WorldEnd
+				case "xformpop": break; // XformPop
+				case "xformpush": break; // XformPush
+
+				default: // Ignore cuz idk what to do with this
+					break;
+			}
+			console.log(str, a);
+			a = null; // only for the print statement above
+		}
+		return; // null, no error
+	}
+}
+
+
+// Canvas
+var canvas = new MyCanvas(document.getElementById("canvas")); // me
+
+function draw() {
+	canvas.reset();
+
+	// Hacky Error Message lol
+	var errorBar = document.getElementById("errorBar")
+	errorBar.hidden = true;
+	var error = (new RDParser(textarea.value)).parse(canvas);
+	if (!error) {
+		// Slow Mode Slider
+		var slider = document.getElementById("speedSlider")
+		var label  = document.getElementById("speedLabel")
+
+		if (canvas.isSlowMode) {
+			slider.hidden = false;
+			label.hidden = false;
+			slider.oninput = function() {
+				var x = (this.value / 50);
+				x = x*x; // 4x
+				x = x > 1 ? x*x*x*x : x; // 256x (4*4*4*4)
+				canvas.dps = x;
+				label.innerHTML = (Math.round(x * 100) / 100).toString() + "x"; // hacky rounding smh
+			}
+			slider.oninput(); // init
+		} else {
+			slider.hidden = true;
+			label.hidden = true;
+			delete slider.oninput;
+		}
+
+		// Drawing
+		canvas.update();
+		return;
+	}
+
+	// If here then Syntax Error
+	errorBar.innerText = error; // Show error
+	errorBar.hidden = false;
+}
+
+// Ctrl + Enter shortcut to run code
+// textarea.onkeydown = function(e) { ... }; // This also works
+textarea.addEventListener("keydown", function(e) {
+	if (e.key === "Enter" && e.ctrlKey)
+		draw();
+});
+
+
+// Debugging
+setSample("smile"); draw();
+
+</script>
